@@ -8,6 +8,16 @@ Today the tools feels like you are coaching a JR developer and watching him code
 
 Still it gives a productivity boost, as we work on a feature level, workspace level and allow the assistant to update or create any file it sees fit to implement a given feature, which differs with current mainstream assistants, often only useful on a file scope, when it comes to implementation. This tool is aiming at a higher level of control.
 
+
+# POC limitations
+
+- Only scans for js|mjs|ejs|css|html|jsx files
+- Requires to be run within a local GIT repository
+- Requires Open AI API key
+- Uses one specific model: gpt-4o-mini-2024-07-18
+- 16k max token input
+- tested on linux only 
+
 # Usage
 
 reload context
@@ -27,6 +37,35 @@ ask to implement a feature
 cd your_git_repo
 aibuddy "your feature request"
 ```
+
+
+# Installation
+
+The POC works wiht open ai, so it will ask your for your open ai API key and store it in ~/.aibuddy config file
+
+installation requirements
+
+```
+git
+jq
+nash
+```
+
+insane one line install
+
+```
+curl -fsSL https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh -o /tmp/aibuddy-install.sh && bash /tmp/aibuddy-install.sh install && rm /tmp/aibuddy-install.sh
+```
+
+sane(r) install
+
+```
+wget https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh
+# inspect downloaded script
+chmod +x aibuddy-install.sh 
+./aibuddy-install.sh install
+```
+
 
 
 # Example 1: adding a similar feature
@@ -51,32 +90,3 @@ aibuddy "move mailgun code into utils/mailgun.js out of index.js and update all 
 ```
 
 *ignore the diff showing for confidentiality*
-
-
-
-# POC limitations
-
-- Only scans for js|mjs|ejs|css|html|jsx files
-- Requires to be run within a local GIT repository
-- Requires Open AI API key
-- Uses one specific model: gpt-4o-mini-2024-07-18
-- 16k max token input
-
-# One line install
-
-The POC works wiht open ai, so it will ask your for your open ai API key and store it in ~/.aibuddy config file
-
-```
-curl -fsSL https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh -o /tmp/aibuddy-install.sh && bash /tmp/aibuddy-install.sh install && rm /tmp/aibuddy-install.sh
-```
-
-# Sane install
-
-The POC works wiht open ai, so it will ask your for your open ai API key and store it in ~/.aibuddy config file
-
-```
-wget https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh
-# inspect downloaded script
-chmod +x aibuddy-install.sh 
-./aibuddy-install.sh install
-```
