@@ -11,23 +11,22 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 
 # POC limitations
 
-- Only scans for js|mjs|ejs|css|html|jsx files
+- Only scans for sh|ts|js|mjs|ejs|css|less|html|jsx|py|cpp|c|go|rs|php|r|rd|rsx|sql|rb|vue files
 - Requires to be run within a local GIT repository
 - Requires Open AI API key
 - Uses one specific model: gpt-4o-mini-2024-07-18
 - 16k max token input
-- tested on linux only 
+- tested on linux only
+- it is a POC...
+
+# Next ?
+
+- automating agent planning with `aibuddy plan` (so far I do this step manually)
+- standardising agentic workflow
+- support more LLMS (ollama integration, AWS Q)
+
 
 # Usage
-
-reload context
-
-```
-# recursively rescans files to include as part of the the context for the ai model
-# you can also modify local ./.aibuddy file manually
-cd your_git_repo
-aibuddy re
-```
 
 ask to implement a feature
 
@@ -38,6 +37,15 @@ cd your_git_repo
 aibuddy "your feature request"
 ```
 
+
+reload context
+
+```
+# recursively rescans files to include as part of the the context for the ai model
+# you can also modify local ./.aibuddy file manually
+cd your_git_repo
+aibuddy re
+```
 
 # Installation
 
