@@ -24,6 +24,7 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 - automating agent planning with `aibuddy plan` (so far I do this step manually)
 - standardising agentic workflow
 - support more LLMS (ollama integration, AWS Q)
+- while I love the simplicity of havin a single .sh, this will probably be migrated to another language
 
 
 # Usage
