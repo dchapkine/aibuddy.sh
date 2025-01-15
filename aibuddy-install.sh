@@ -40,7 +40,7 @@ install_local() {
 
     # Generate the CONTEXT_FILES variable using git ls-files
     echo "Using git ls-files to gather files with specified extensions..."
-    CONTEXT_FILES=$(git ls-files | grep -E '\.(js|mjs|ejs|css|html|jsx)$' | tr '\n' ';')
+    CONTEXT_FILES=$(git ls-files | grep -E '\.(sh|ts|js|mjs|ejs|css|less|html|jsx|py|cpp|c|go|rs|php|r|rd|rsx|sql|rb|vue)$' | tr '\n' ';')
 
     # Ensure CONTEXT_FILES is not empty
     if [ -z "$CONTEXT_FILES" ]; then
