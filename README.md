@@ -11,7 +11,6 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 
 # POC limitations
 
-- Only scans for sh|ts|js|mjs|ejs|css|less|html|jsx|py|cpp|c|go|rs|php|r|rd|rsx|sql|rb|vue files
 - Requires to be run within a local GIT repository
 - Requires Open AI API key
 - Uses one specific model: gpt-4o-mini-2024-07-18
@@ -48,33 +47,39 @@ cd your_git_repo
 aibuddy re
 ```
 
-# Installation
+# Requirements
 
-The POC works wiht open ai, so it will ask your for your open ai API key and store it in ~/.aibuddy config file
+The POC works with an open ai account, so it will ask your for your open ai API key and store it in ~/.aibuddy config file
 
-installation requirements
+More providers will be added...
+
+Requirements
 
 ```
+nodejs
 git
 jq
-nash
+bash
 ```
 
-insane one line install
+# Install
+
+To install aibuddy, run this:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh -o /tmp/aibuddy-install.sh && bash /tmp/aibuddy-install.sh install && rm /tmp/aibuddy-install.sh
-```
-
-sane(r) install
-
-```
-wget https://raw.githubusercontent.com/dchapkine/aibuddy.sh/refs/heads/main/aibuddy-install.sh
-# inspect downloaded script
-chmod +x aibuddy-install.sh 
+git clone https://github.com/dchapkine/aibuddy.sh.git
+cd aibuddy.sh
+chmod +x aibuddy-install.sh
 ./aibuddy-install.sh install
 ```
 
+To update
+
+```
+cd aibuddy.sh
+git pull
+./aibuddy-install.sh install
+```
 
 
 # Example 1: adding a similar feature
@@ -90,7 +95,7 @@ aibuddy "use the same tags js library for sharedWithEmails input in views/spaces
 aibuddy "move express routes out of index.js into dedicated route files under routes folder. Make sure each route file requires all needed dependencies to function independently and correctly. Update index.js to remove those route declarations and replace them with routes required from routes/* files"
 ```
 
-*ignore the diff showing for confidentiality*
+*ignore the diff showing for confidentiality reasons*
 
 # Example 3: refactor code
 
@@ -98,4 +103,4 @@ aibuddy "move express routes out of index.js into dedicated route files under ro
 aibuddy "move mailgun code into utils/mailgun.js out of index.js and update all files using mailgun to require nad reuse utils/mailgun.js instead"
 ```
 
-*ignore the diff showing for confidentiality*
+*ignore the diff showing for confidentiality reasons*
