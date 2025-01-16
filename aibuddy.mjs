@@ -196,6 +196,146 @@ function sanitizeJSON(str) {
 
 
 // -------------------------------
+// Plan Mode
+// -------------------------------
+async function planningMode(requestArg = '') {
+  console.log('Running planning mode...');
+
+  // Check for local config
+  if (!fileExists(LOCAL_AIBUDDY_FILE)) {
+    console.error(`Local ${LOCAL_AIBUDDY_FILE} file is missing. Run install first.`);
+    process.exit(1);
+  }
+
+  // Merge global + local JSON data
+  const globalData = parseJSONFile(GLOBAL_AIBUDDY_FILE);
+  const localData = parseJSONFile(LOCAL_AIBUDDY_FILE);
+  const mergedData = { ...globalData, ...localData };
+
+  const { OPENAI_API_KEY, CONTEXT_FILES, APP_DESCRIPTION } = mergedData;
+  if (!OPENAI_API_KEY) {
+    console.error('Error: No OPENAI_API_KEY found. Please set it up via install.');
+    process.exit(1);
+  }
+
+  console.log("Reminder: If you add new files, run 'aibuddy re' to regenerate the context.");
+
+  // Prepare temporary file paths
+  const PROMPT_FILE = '/tmp/aibuddy_prompt.txt';
+  const RESPONSE_FILE = '/tmp/aibuddy_response.json';
+  const PATCH_FILE = '/tmp/aibuddy_patch.diff'; // JSON content with { filename: fileContent }
+  const PLAN_FILE = './.aibuddy.plan';
+
+  // Build prompt content
+  let promptContent = `${APP_DESCRIPTION}\n`;
+  promptContent += `\n### You will use the following files (with contents below) as the current state to generate your answer.\n`;
+
+  // CONTEXT_FILES is now an array
+  const files = Array.isArray(CONTEXT_FILES) ? CONTEXT_FILES : [];
+  for (const filePath of files) {
+    if (fileExists(filePath)) {
+      const fileContent = fs.readFileSync(filePath, 'utf-8').replace(/\0/g, '');
+      promptContent += `\n### File: ${filePath}\n${fileContent}`;
+    }
+  }
+
+  // Add user request
+  promptContent += `\n### Request: ${requestArg}\n`;
+  promptContent += `\n#### OUTPUT NOTHING ELSE THAN a JSON object containing a list of of prompts to achieve the Request above, in following format: {"plan": [{"desc": "...brief prompt description...", "prompt": "...detailed prompt to implement this step..."}]}`;
+
+  fs.writeFileSync(PROMPT_FILE, promptContent);
+
+  // Create JSON payload for OpenAI Chat
+  /*
+  // gpt-4o-mini-2024-07-18
+  const payload = {
+    model: 'gpt-4o-mini-2024-07-18',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: promptContent },
+    ],
+    max_tokens: 16000,
+  };
+  */
+  const payload = {
+    model: 'o1-mini-2024-09-12',
+    messages: [
+      { role: 'user', content: 'You are a helpful assistant.' },
+      { role: 'user', content: promptContent },
+    ],
+    max_completion_tokens: 16000,
+  };
+  fs.writeFileSync(RESPONSE_FILE, JSON.stringify(payload, null, 2));
+
+  // Make the API call using fetch (Node 18+)
+  let responseData;
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    responseData = await response.json();
+  } catch (err) {
+    console.error('Network or fetch error:', err);
+    cleanupFiles();
+    process.exit(1);
+  }
+
+  // Check OpenAI error
+  if (responseData?.error) {
+    console.error(`Error from OpenAI API: ${responseData.error.message}`);
+    cleanupFiles();
+    process.exit(1);
+  }
+
+  // Extract the model's reply
+  const modelContent = responseData?.choices?.[0]?.message?.content || '';
+  fs.writeFileSync(PATCH_FILE, modelContent);
+
+
+  // Attempt to parse JSON
+  let jsonPlan;
+  try {
+    const rawJsonString = sanitizeJSON(modelContent.trim());
+    jsonPlan = JSON.parse(rawJsonString);
+  } catch (err) {
+    console.log('No valid JSON patch received or the content is empty.');
+    console.log(err)
+    cleanupFiles();
+    return;
+  }
+
+  // store plan locally
+  fs.writeFileSync(PLAN_FILE, JSON.stringify(jsonPlan, null, '  '));
+
+  // show plan
+  for (let step of jsonPlan.plan) {
+    console.log(`# ${step.desc}`);
+    console.log(`  ${step.prompt}`);
+    console.log("")
+  }
+
+  console.log('THE END');
+  cleanupFiles();
+  console.log('Planning mode complete.');
+
+  function cleanupFiles() {
+    for (const file of [PROMPT_FILE, RESPONSE_FILE, PATCH_FILE]) {
+      try {
+        fs.unlinkSync(file);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+  }
+}
+
+
+// -------------------------------
 // Assistant Mode
 // -------------------------------
 async function assistantMode(requestArg = '') {
@@ -249,13 +389,24 @@ async function assistantMode(requestArg = '') {
   fs.writeFileSync(PROMPT_FILE, promptContent);
 
   // Create JSON payload for OpenAI Chat
+  /*
+  // gpt-4o-mini-2024-07-18
   const payload = {
-    model: 'gpt-4o-mini-2024-07-18', // example custom model
+    model: 'gpt-4o-mini-2024-07-18',
     messages: [
       { role: 'system', content: 'You are a helpful assistant.' },
       { role: 'user', content: promptContent },
     ],
     max_tokens: 16000,
+  };
+  */
+  const payload = {
+    model: 'o1-mini-2024-09-12',
+    messages: [
+      { role: 'user', content: 'You are a helpful assistant.' },
+      { role: 'user', content: promptContent },
+    ],
+    max_completion_tokens: 16000,
   };
   fs.writeFileSync(RESPONSE_FILE, JSON.stringify(payload, null, 2));
 
@@ -351,8 +502,12 @@ async function assistantMode(requestArg = '') {
   } else if (arg === 're' || arg === 'reload') {
     // Regenerate local context (CONTEXT_FILES array + APP_DESCRIPTION)
     await installLocal();
+  } else if (arg === 'plan') {
+    await planningMode(process.argv[3]);
   } else {
     // Default is assistant mode
     await assistantMode(arg);
   }
 })();
+
+
