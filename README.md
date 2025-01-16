@@ -13,7 +13,7 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 
 - Requires to be run within a local GIT repository
 - Requires Open AI API key
-- Uses one specific model: o1-mini-2024-09-12
+- Uses one specific model, one provider
 - 16k max token input
 - tested on linux only
 - it is a POC...
@@ -27,6 +27,8 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 
 
 # Plan
+
+*aibuddy plan "......"*
 
 Ask AI to plan your changes braking them down into prompts
 
@@ -106,6 +108,50 @@ $ cat .aibuddy.plan
 }
 
 ```
+
+
+# Apply
+
+*aibuddy apply*
+
+```
+$ aibuddy apply
+Running apply mode...
+Switched to a new branch 'aiplan-1737044739314'
+Created and switched to new branch: aiplan-1737044739314
+Applying step: Create a new Express route to handle user interactions visualization
+Running assistant mode...
+Reminder: If you add new files, run 'aibuddy re' to regenerate the context.
+
+
+Written file: routes/spaces/interactions.js
+Written file: routes/spaces.js
+Patch applied successfully.
+Assistant mode complete.
+Committed step: Create a new Express route to handle user interactions visualization
+Running local installation...
+Using 'git ls-files' to gather files with specified extensions...
+Local installation complete.
+Applying step: Fetch user interaction data from the UserAction model
+Running assistant mode...
+Reminder: If you add new files, run 'aibuddy re' to regenerate the context.
+Written file: routes/spaces/interactions.js
+Patch applied successfully.
+Assistant mode complete.
+...
+Pushing changes to origin aiplan-1737044739314
+remote: 
+remote: Create a pull request for 'aiplan-1737044739314' on Gitxxx by visiting:        
+remote:      https://.....................        
+remote: 
+To .................
+ * [new branch]      aiplan-1737044739314 -> aiplan-1737044739314
+Apply mode complete.
+✔ [aiplan-1737044739314 L|✔] 
+
+```
+
+
 
 
 # Usage
