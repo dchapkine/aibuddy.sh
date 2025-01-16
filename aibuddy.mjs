@@ -15,10 +15,31 @@ const LOCAL_AIBUDDY_FILE = '.aibuddy.json';
 const SELF_PATH = '/usr/local/bin/aibuddy.mjs';
 const HELPER_PATH = '/usr/local/bin/aibuddy';
 const SUPPORTED_FILE_EXTENSIONS = "sh|ts|js|mjs|ejs|css|less|html|jsx|py|cpp|c|go|rs|php|r|rd|rsx|sql|rb|vue|swift|java|kotlin|dart|scala|rust|clj|cljc|edn|lua|mlx|groovy|asm|pl|erl|o|ex|exs|pas|d|nim|ml|pike|sql|yaml|yml|json|xml|txt|md|markdown|csv|bat|ps1";
+const MODEL = 'gpt-4o';// 'o1-mini'
 
 // -------------------------------
 // Helper Functions
 // -------------------------------
+
+/**
+ * Fetch with timeout
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 600000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    // Call the built-in fetch instead of this same function
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 
 /**
  * Check if a file exists.
@@ -99,7 +120,7 @@ async function installGlobal() {
 
       // create helper
       const HELPER_CONTENT = `
-#!/usr/bin/env bash
+# !/usr/bin/env bash
 ${SELF_PATH} "$@" 
       `;
       fs.writeFileSync('./helper', HELPER_CONTENT);
@@ -180,7 +201,7 @@ function sanitizeJSON(str) {
     JSON.parse(str);
     return str; // it's valid JSON, return as-is.
   } catch {
-    // 2. Not valid JSON, try removing code fences like ```json ... ```
+    // 2. Not valid JSON, try removing code fences like json ... 
     const withoutFences = str.replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1');
 
     // 3. Check if fence-stripped version is valid JSON
@@ -193,7 +214,6 @@ function sanitizeJSON(str) {
     }
   }
 }
-
 
 // -------------------------------
 // Plan Mode
@@ -241,43 +261,33 @@ async function planningMode(requestArg = '') {
 
   // Add user request
   promptContent += `\n### Request: ${requestArg}\n`;
-  promptContent += `\n#### OUTPUT NOTHING ELSE THAN a JSON object containing a list of of prompts to achieve the Request above, in following format: {"plan": [{"desc": "...brief prompt description...", "prompt": "...detailed prompt to implement this step..."}]}`;
+  promptContent += `\n#### OUTPUT NOTHING ELSE THAN a JSON object containing a list of of prompts to achieve the Request above, in following format: {"plan": [{"desc": "...brief prompt description...", "prompt": "...detailed prompt to implement this step..."}]}\n`;
+  promptContent += `\n#### DO NOT USE ANY QUOTES OR $ VARIABLES IN THE PROMPTS YOU GENERATE`;
 
   fs.writeFileSync(PROMPT_FILE, promptContent);
 
   // Create JSON payload for OpenAI Chat
-  /*
-  // gpt-4o-mini-2024-07-18
   const payload = {
-    model: 'gpt-4o-mini-2024-07-18',
-    messages: [
-      { role: 'system', content: 'You are a helpful assistant.' },
-      { role: 'user', content: promptContent },
-    ],
-    max_tokens: 16000,
-  };
-  */
-  const payload = {
-    model: 'o1-mini-2024-09-12',
+    model: MODEL,
     messages: [
       { role: 'user', content: 'You are a helpful assistant.' },
       { role: 'user', content: promptContent },
     ],
-    max_completion_tokens: 16000,
+    //max_completion_tokens: 35000,
   };
   fs.writeFileSync(RESPONSE_FILE, JSON.stringify(payload, null, 2));
 
   // Make the API call using fetch (Node 18+)
   let responseData;
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-    });
+    }, 600000);
     responseData = await response.json();
   } catch (err) {
     console.error('Network or fetch error:', err);
@@ -295,7 +305,6 @@ async function planningMode(requestArg = '') {
   // Extract the model's reply
   const modelContent = responseData?.choices?.[0]?.message?.content || '';
   fs.writeFileSync(PATCH_FILE, modelContent);
-
 
   // Attempt to parse JSON
   let jsonPlan;
@@ -324,16 +333,16 @@ async function planningMode(requestArg = '') {
   console.log('Planning mode complete.');
 
   function cleanupFiles() {
+    /*
     for (const file of [PROMPT_FILE, RESPONSE_FILE, PATCH_FILE]) {
       try {
         fs.unlinkSync(file);
       } catch {
         // ignore cleanup errors
       }
-    }
+    }*/
   }
 }
-
 
 // -------------------------------
 // Assistant Mode
@@ -380,47 +389,38 @@ async function assistantMode(requestArg = '') {
 
   // Add user request
   promptContent += `\n### Request: ${requestArg}\n`;
-  promptContent += `\n#### OUTPUT NOTHING ELSE THAN a raw valid JSON OBJECT with a list of updated filenames as keys and FULL patched file content as values
-  Example: { "file1.js": "console.log('hi');" }
-  IF there is no valid reply output an empty json.
-  DO NOT OUTPUT ANYTHING ELSE.
-  REMOVE ANY MARKDOWN OBJECT PREFIXES and SUFFIXES around JSON object like \`\`\`json OR \`\`\`.\n`;
+  promptContent += `\n#### OUTPUT NOTHING ELSE THAN a raw valid JSON OBJECT with a list of updated filenames as keys and FULL file content as values
+      Example: { "file1.js": "console.log('hi');" }
+      IF there is no valid reply output an empty json.
+      DO NOT OUTPUT ANYTHING ELSE.
+      REMOVE ANY MARKDOWN OBJECT PREFIXES and SUFFIXES around JSON object like json OR .
+    `;
+  promptContent += `\n#### INCLUDE FULL FILE CONTENT IN YOUR RESPONCES ONLY`;
 
   fs.writeFileSync(PROMPT_FILE, promptContent);
 
   // Create JSON payload for OpenAI Chat
-  /*
-  // gpt-4o-mini-2024-07-18
   const payload = {
-    model: 'gpt-4o-mini-2024-07-18',
-    messages: [
-      { role: 'system', content: 'You are a helpful assistant.' },
-      { role: 'user', content: promptContent },
-    ],
-    max_tokens: 16000,
-  };
-  */
-  const payload = {
-    model: 'o1-mini-2024-09-12',
+    model: MODEL,
     messages: [
       { role: 'user', content: 'You are a helpful assistant.' },
       { role: 'user', content: promptContent },
     ],
-    max_completion_tokens: 16000,
+    //max_completion_tokens: 35000,
   };
   fs.writeFileSync(RESPONSE_FILE, JSON.stringify(payload, null, 2));
 
   // Make the API call using fetch (Node 18+)
   let responseData;
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
-    });
+    }, 600000);
     responseData = await response.json();
   } catch (err) {
     console.error('Network or fetch error:', err);
@@ -446,6 +446,7 @@ async function assistantMode(requestArg = '') {
     jsonPatch = JSON.parse(rawJsonString);
   } catch {
     console.log('No valid JSON patch received or the content is empty.');
+    console.log(err);
     cleanupFiles();
     return;
   }
@@ -475,6 +476,7 @@ async function assistantMode(requestArg = '') {
   console.log('Assistant mode complete.');
 
   function cleanupFiles() {
+    /*
     for (const file of [PROMPT_FILE, RESPONSE_FILE, PATCH_FILE]) {
       try {
         fs.unlinkSync(file);
@@ -482,7 +484,72 @@ async function assistantMode(requestArg = '') {
         // ignore cleanup errors
       }
     }
+    */
   }
+}
+
+// -------------------------------
+// Apply Mode
+// -------------------------------
+async function applyMode() {
+  console.log('Running apply mode...');
+
+  // Check for local config
+  if (!fileExists(LOCAL_AIBUDDY_FILE)) {
+    console.error(`Local ${LOCAL_AIBUDDY_FILE} file is missing. Run install first.`);
+    process.exit(1);
+  }
+
+  // Read plan file
+  const planFilePath = './.aibuddy.plan';
+  if (!fileExists(planFilePath)) {
+    console.error('Error: .aibuddy.plan file not found. Please run aibuddy plan first.');
+    process.exit(1);
+  }
+
+  const planData = parseJSONFile(planFilePath);
+  if (!planData.plan || !Array.isArray(planData.plan)) {
+    console.error('Error: Invalid .aibuddy.plan format.');
+    process.exit(1);
+  }
+
+  // Create a new Git branch
+  const branchName = `aiplan-${Date.now()}`;
+  try {
+    execSync(`git checkout -b ${branchName}`);
+    console.log(`Created and switched to new branch: ${branchName}`);
+  } catch (err) {
+    console.error('Error creating new git branch:', err.message);
+    process.exit(1);
+  }
+
+  // Iterate over each plan step and apply it
+  for (const step of planData.plan) {
+    console.log(`Applying step: ${step.desc}`);
+    try {
+      await assistantMode(step.prompt);
+      // Stage all changes
+      execSync('git add .');
+      // Commit with step description
+      execSync(`git diff-index --quiet HEAD || git commit -m "${step.desc}"`);
+      console.log(`Committed step: ${step.desc}`);
+      await installLocal();
+    } catch (err) {
+      console.error(`Error applying step "${step.desc}":`, err.message);
+      process.exit(1);
+    }
+  }
+
+  // Commit changes
+  try {
+    console.log(`Pushing changes to origin ${branchName}`);
+    execSync(`git push origin ${branchName}`);
+  } catch (err) {
+    console.error('Error committing changes:', err.message);
+    process.exit(1);
+  }
+
+  console.log('Apply mode complete.');
 }
 
 // -------------------------------
@@ -504,10 +571,10 @@ async function assistantMode(requestArg = '') {
     await installLocal();
   } else if (arg === 'plan') {
     await planningMode(process.argv[3]);
+  } else if (arg === 'apply') {
+    await applyMode();
   } else {
     // Default is assistant mode
     await assistantMode(arg);
   }
 })();
-
-
