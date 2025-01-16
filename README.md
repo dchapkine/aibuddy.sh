@@ -4,7 +4,7 @@ Actually useful, workspace aware AI assistant for GIT, unafraid to update multip
 
 The goal is to actually have an equivalent to JR developer on your side.
 
-Today the tools feels like you are coaching a JR developer and watching him code: if your instructions are clear and contained enough, it gives great results, using gpt4o model.
+Today the tools feels like you are coaching a JR developer and watching him code: if your instructions are clear and contained enough, it gives great results, using o1-mini-2024-09-12 model.
 
 Still it gives a productivity boost, as we work on a feature level, workspace level and allow the assistant to update or create any file it sees fit to implement a given feature, which differs with current mainstream assistants, often only useful on a file scope, when it comes to implementation. This tool is aiming at a higher level of control.
 
@@ -13,7 +13,7 @@ Still it gives a productivity boost, as we work on a feature level, workspace le
 
 - Requires to be run within a local GIT repository
 - Requires Open AI API key
-- Uses one specific model: gpt-4o-mini-2024-07-18
+- Uses one specific model: o1-mini-2024-09-12
 - 16k max token input
 - tested on linux only
 - it is a POC...
