@@ -209,6 +209,12 @@ git pull
 ./aibuddy-install.sh install
 ```
 
+# Ignore
+
+By default all files in .gitignore will be excluded from the context when you run `aibuddy re`.
+
+Furthermore, you can create an additional `.aibuddy.ignore` file to ignore files that are already versionned from the context.
+
 
 # Example 1: adding a similar feature
 
