@@ -16,6 +16,7 @@ const SELF_PATH = '/usr/local/bin/aibuddy.mjs';
 const HELPER_PATH = '/usr/local/bin/aibuddy';
 const SUPPORTED_FILE_EXTENSIONS = "sh|ts|js|mjs|ejs|css|less|html|jsx|py|cpp|c|go|rs|php|r|rd|rsx|sql|rb|vue|swift|java|kotlin|dart|scala|rust|clj|cljc|edn|lua|mlx|groovy|asm|pl|erl|o|ex|exs|pas|d|nim|ml|pike|sql|yaml|yml|json|xml|txt|md|markdown|csv|bat|ps1";
 const MODEL = 'gpt-4o';// 'o1-mini'
+const IGNORE_FILE="./.aibuddy.ignore"
 
 // -------------------------------
 // Helper Functions
@@ -167,9 +168,16 @@ async function installLocal() {
   console.log("Using 'git ls-files' to gather files with specified extensions...");
   let fileList = [];
   try {
-    const stdout = execSync(
-      `git ls-files | grep -E '\\.(${SUPPORTED_FILE_EXTENSIONS})$'`
-    ).toString();
+    let stdout = null;
+    if (fileExists(IGNORE_FILE)) {
+      stdout = execSync(
+        `git ls-files | grep -v -f ${IGNORE_FILE} | grep -E '\\.(${SUPPORTED_FILE_EXTENSIONS})$'`
+      ).toString(); 
+    } else {
+      stdout = execSync(
+        `git ls-files | grep -E '\\.(${SUPPORTED_FILE_EXTENSIONS})$'`
+      ).toString(); 
+    }
     // Split on newlines => get an array
     fileList = stdout.trim().split('\n').filter(Boolean);
   } catch (err) {
